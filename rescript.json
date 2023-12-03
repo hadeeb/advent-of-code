@@ -1,0 +1,47 @@
+{
+  "name": "aoc-rescript",
+  "sources": [
+    {
+      "dir": "rescript",
+      "subdirs": true
+    }
+  ],
+  "package-specs": [
+    {
+      "module": "es6",
+      "in-source": true,
+      "suffix": ".mjs"
+    }
+  ],
+  "jsx": {
+    "version": 4,
+    "mode": "automatic"
+  },
+  "bs-dependencies": [
+    "@rescript/core"
+  ],
+  "bsc-flags": [
+    "-open RescriptCore"
+  ],
+  "ppx-flags": [],
+  "reanalyze": {
+    "analysis": [
+      "dce",
+      "exception",
+      "termination"
+    ],
+    "suppress": [],
+    "transitive": true,
+    "unsuppress": []
+  },
+  "gentypeconfig": {
+    "language": "typescript",
+    "shims": {},
+    "generatedFileExtension": ".res.ts",
+    "module": "es6",
+    "debug": {
+      "all": false,
+      "basic": false
+    }
+  }
+}

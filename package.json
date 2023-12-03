@@ -1,0 +1,19 @@
+{
+  "name": "advent-of-code",
+  "private": true,
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "res:build": "rescript",
+    "res:dev": "rescript build -w"
+  },
+  "keywords": [],
+  "author": "Hadeeb Farhan",
+  "dependencies": {
+    "@rescript/core": "^0.6.0"
+  },
+  "devDependencies": {
+    "rescript": "11.0.0-rc.6"
+  }
+}
