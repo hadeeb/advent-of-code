@@ -12,12 +12,17 @@ module File = {
   type t
 
   @module("node:fs/promises")
-  external readText: URL.t => promise<t> = "readFile"
+  external readFile: URL.t => promise<t> = "readFile"
   @send
   external toString: t => string = "toString"
 
+  let readString = async url => {
+    let file = await readFile(url)
+    file->toString
+  }
+
   let readLines = async url => {
-    let file = await readText(url)
-    file->toString->String.split("\n")
+    let str = await readString(url)
+    str->String.split("\n")
   }
 }
