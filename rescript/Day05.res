@@ -1,9 +1,10 @@
 open Utils
 
 type mapping = {
-  from: float,
-  to: float,
-  range: float,
+  fromStart: float,
+  fromEnd: float,
+  toStart: float,
+  toEnd: float,
 }
 
 type map = {
@@ -25,10 +26,14 @@ let parse = async () => {
 
   let line2mapping = line => {
     let line = line->String.split(" ")->Array.map(x => x->Float.parseInt)
+    let from = line->Array.getUnsafe(1)
+    let to = line->Array.getUnsafe(0)
+    let range = line->Array.getUnsafe(2)
     {
-      from: line->Array.getUnsafe(1),
-      to: line->Array.getUnsafe(0),
-      range: line->Array.getUnsafe(2),
+      fromStart: from,
+      fromEnd: from +. range -. 1.0,
+      toStart: to,
+      toEnd: to +. range -. 1.0,
     }
   }
 
@@ -50,13 +55,25 @@ let getLocationForSeed = (seed, maps) => {
   maps->Array.reduce(seed, (acc, map) => {
     map.map
     ->Array.find(mapping => {
-      let start = mapping.from
-      let end = mapping.from +. mapping.range -. 1.0
-      acc >= start && acc <= end
+      acc >= mapping.fromStart && acc <= mapping.fromEnd
     })
     ->Option.map(mapping => {
-      let diff = acc -. mapping.from
-      mapping.to +. diff
+      let diff = acc -. mapping.fromStart
+      mapping.toStart +. diff
+    })
+    ->Option.getOr(acc)
+  })
+}
+
+let getSeedForLocation = (location, maps) => {
+  maps->Array.reduceRight(location, (acc, map) => {
+    map.map
+    ->Array.find(mapping => {
+      acc >= mapping.toStart && acc <= mapping.toEnd
+    })
+    ->Option.map(mapping => {
+      let diff = acc -. mapping.toStart
+      mapping.fromStart +. diff
     })
     ->Option.getOr(acc)
   })
@@ -70,34 +87,64 @@ let step1 = (seeds, maps) => {
   ->Array.reduce(Float.Constants.positiveInfinity, (acc, x) => acc > x ? x : acc)
 }
 
-let step2 = (seeds: array<float>, maps) => {
-  // Does not work. Loop too large.
-  let smallest = ref(Float.Constants.positiveInfinity)
+let getStart = (location, maps) => {
+  maps->Array.reduceRight(location, (acc, map) => {
+    map.map
+    ->Array.find(mapping => {
+      acc >= mapping.toStart && acc <= mapping.toEnd
+    })
+    ->Option.map(mapping => {
+      let diff = acc -. mapping.toStart
+      mapping.fromStart +. diff
+    })
+    ->Option.getOr(acc)
+  })
+}
 
-  for i in 0 to seeds->Array.length - 1 {
-    if i->mod(2) == 0 {
-      let start = seeds->Array.getUnsafe(i)
-      let range = seeds->Array.getUnsafe(i + 1)
-      let end = start +. range -. 1.0
-      let start = ref(start)
+type range = {
+  start: float,
+  end: float,
+}
 
-      while start.contents <= end {
-        let location = getLocationForSeed(start.contents, maps)
-        if location < smallest.contents {
-          smallest := location
-        }
-        start := start.contents +. 1.0
-      }
+let step2 = (seeds, maps) => {
+  // Work way up
+  let smallestLocationRange = maps->Array.at(-1)->Option.getUnsafe
+  let firstValue = smallestLocationRange.map->Array.getUnsafe(0)
+  let smallestLocationRange =
+    smallestLocationRange.map->Array.reduce(firstValue, (acc, x) =>
+      acc.toStart > x.toStart ? x : acc
+    )
+
+  let start = 0.0
+  let end = smallestLocationRange.toEnd
+
+  let seedRanges = Array.fromInitializer(~length=seeds->Array.length / 2, i => {
+    let start = seeds->Array.getUnsafe(i * 2)
+    let range = seeds->Array.getUnsafe(i * 2 + 1)
+    let end = start +. range -. 1.0
+    {start, end}
+  })
+
+  let rec checkSeedExist = location => {
+    let seed = getSeedForLocation(location, maps)
+
+    let seedExists = seedRanges->Array.some(range => {
+      seed >= range.start && seed <= range.end
+    })
+    if seedExists {
+      location
+    } else if location > end {
+      failwith("No seed found")
+    } else {
+      checkSeedExist(location +. 1.0)
     }
   }
-
-  smallest.contents
+  checkSeedExist(start)
 }
 
 let run = async () => {
   let (seeds, maps) = await parse()
   Console.log2("Step 1:", step1(seeds, maps))
-  // 157211394
   Console.log2("Step 2:", step2(seeds, maps))
 }
 
