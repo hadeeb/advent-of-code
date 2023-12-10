@@ -1,6 +1,6 @@
 open Utils
 
-type race = {time: int, distance: int}
+type race = {time: float, distance: float}
 let parse = async () => {
   let lines = await File.readLines(URL.make("../data/06.txt", ~base=Import.Meta.url))
   let strToNums = string => {
@@ -8,7 +8,7 @@ let parse = async () => {
     ->String.replaceRegExp(Re.fromStringWithFlags("\\s+", ~flags="g"), " ")
     ->String.trim
     ->String.split(" ")
-    ->Array.map(x => x->Float.parseInt->Float.toInt)
+    ->Array.map(x => x->Float.parseInt)
   }
   let times =
     lines
@@ -32,35 +32,60 @@ let parse = async () => {
   })
 }
 
+let findWaysToWin = race => {
+  let {time, distance: target} = race
+
+  let timeTravelled = timeToStart => {
+    let speed = timeToStart *. 1.0
+    let timeToMove = time -. timeToStart
+    let distanceTravelled = timeToMove *. speed
+    distanceTravelled
+  }
+
+  let timeToStart = ref(0.0)
+  let wins = ref(0)
+  while timeToStart.contents <= time {
+    let distance = timeTravelled(timeToStart.contents)
+    if distance > target {
+      wins := wins.contents + 1
+    }
+    timeToStart := timeToStart.contents +. 1.0
+  }
+  wins.contents
+}
+
 let step1 = races => {
-  let waysToWin = races->Array.map(race => {
-    let {time, distance: target} = race
-
-    let timeTravelled = timeToStart => {
-      let speed = timeToStart * 1
-      let timeToMove = time - timeToStart
-      let distanceTravelled = timeToMove * speed
-      distanceTravelled
-    }
-
-    let timeToStart = ref(0)
-    let wins = ref(0)
-    while timeToStart.contents <= time {
-      let distance = timeTravelled(timeToStart.contents)
-      if distance > target {
-        wins := wins.contents + 1
-      }
-      timeToStart := timeToStart.contents + 1
-    }
-    wins.contents
-  })
+  let waysToWin = races->Array.map(findWaysToWin)
   waysToWin->Array.reduce(1, (acc, x) => acc * x)
 }
 
+let parse2 = async () => {
+  let lines = await File.readLines(URL.make("../data/06.txt", ~base=Import.Meta.url))
+  let strToNum = string => {
+    string
+    ->String.replaceRegExp(Re.fromStringWithFlags("\\s*", ~flags="g"), "")
+    ->String.trim
+    ->Float.parseInt
+  }
+  let time =
+    lines
+    ->Array.getUnsafe(0)
+    ->String.sliceToEnd(~start="Time:"->String.length)
+    ->strToNum
+  let distance =
+    lines
+    ->Array.getUnsafe(1)
+    ->String.sliceToEnd(~start="Distance:"->String.length)
+    ->strToNum
+
+  {time, distance}
+}
+
+let step2 = race => findWaysToWin(race)
+
 let run = async () => {
-  let races = await parse()
-  Console.log2("Step 1:", step1(races))
-  // Console.log2("Step 2:", step2(seeds, maps))
+  Console.log2("Step 1:", step1(await parse()))
+  Console.log2("Step 2:", step2(await parse2()))
 }
 
 run()->ignore
